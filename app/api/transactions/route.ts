@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Polymarket Default Address
-const POLYMARKET_DEFAULT_ADDRESS = '0x259689a1594081a808a9bc7300c2a0fac7fc56d0';
+// Polymarket dedicated addresses that should use Polymarket-only mode
+const POLYMARKET_DEDICATED_ADDRESSES = [
+  '0x259689a1594081a808a9bc7300c2a0fac7fc56d0', // Primary Polymarket demo address
+  '0x45e842555d3a1d418bb7b7f8a0c1caf9ee297e8d', // Secondary Polymarket address
+];
 
 // Cache for 5 minutes
 const CACHE_DURATION = 5 * 60 * 1000;
@@ -694,29 +697,35 @@ export async function GET(request: NextRequest) {
     );
   }
   
-  // Try Polymarket first for any address
-  console.log(`Checking for Polymarket activity for address: ${address}`);
+  // Check if this is a dedicated Polymarket address (only use Polymarket mode for these)
+  const isDedicatedPolymarketAddress = POLYMARKET_DEDICATED_ADDRESSES.some(
+    addr => addr.toLowerCase() === address.toLowerCase()
+  );
   
-  // Check cache for Polymarket data
-  const polymarketCacheKey = `polymarket_transactions_${address}`;
-  const polymarketCached = cache.get(polymarketCacheKey);
-  if (polymarketCached && Date.now() - polymarketCached.timestamp < CACHE_DURATION) {
-    return NextResponse.json(polymarketCached.data);
-  }
-  
-  // Try fetching Polymarket data - if it has transactions, use Polymarket mode
-  try {
-    const polymarketResult = await fetchPolymarketTransactions(address);
-    if (polymarketResult.transactions && polymarketResult.transactions.length > 0) {
-      console.log(`Found ${polymarketResult.transactions.length} Polymarket transactions for ${address}`);
-      
-      // Cache the result
-      cache.set(polymarketCacheKey, { data: polymarketResult, timestamp: Date.now() });
-      
-      return NextResponse.json(polymarketResult);
+  if (isDedicatedPolymarketAddress) {
+    console.log(`Using Polymarket mode for dedicated address: ${address}`);
+    
+    // Check cache for Polymarket data
+    const polymarketCacheKey = `polymarket_transactions_${address}`;
+    const polymarketCached = cache.get(polymarketCacheKey);
+    if (polymarketCached && Date.now() - polymarketCached.timestamp < CACHE_DURATION) {
+      return NextResponse.json(polymarketCached.data);
     }
-  } catch (error) {
-    console.log(`No Polymarket activity found for ${address}, trying blockchain detection`);
+    
+    // Try fetching Polymarket data - if it has transactions, use Polymarket mode
+    try {
+      const polymarketResult = await fetchPolymarketTransactions(address);
+      if (polymarketResult.transactions && polymarketResult.transactions.length > 0) {
+        console.log(`Found ${polymarketResult.transactions.length} Polymarket transactions for ${address}`);
+        
+        // Cache the result
+        cache.set(polymarketCacheKey, { data: polymarketResult, timestamp: Date.now() });
+        
+        return NextResponse.json(polymarketResult);
+      }
+    } catch (error) {
+      console.log(`No Polymarket activity found for ${address}, trying blockchain detection`);
+    }
   }
   
   // Check cache (include chain in cache key for EVM addresses)

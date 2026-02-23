@@ -137,6 +137,12 @@ export default function WalletExplorer() {
     }
   };
 
+  // Polymarket dedicated addresses
+  const polymarketAddresses = [
+    "0x259689a1594081a808a9bc7300c2a0fac7fc56d0",
+    "0x45e842555d3a1d418bb7b7f8a0c1caf9ee297e8d",
+  ];
+
   const sampleAddresses = [
     {
       chain: "ETH",
@@ -149,9 +155,19 @@ export default function WalletExplorer() {
       label: "Genesis",
     },
     {
+      chain: "SOL",
+      address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+      label: "Solana Ecosystem",
+    },
+    {
       chain: "Polymarket",
       address: "0x259689a1594081a808a9bc7300c2a0fac7fc56d0",
-      label: "Predictions",
+      label: "Predictions #1",
+    },
+    {
+      chain: "Polymarket",
+      address: "0x45e842555d3a1d418bb7b7f8a0c1caf9ee297e8d",
+      label: "Predictions #2",
     },
   ];
 
@@ -200,11 +216,8 @@ export default function WalletExplorer() {
               key={sample.address}
               onClick={() => {
                 setAddress(sample.address);
-                // Set Polymarket to polygon chain by default
-                if (
-                  sample.address ===
-                  "0x259689a1594081a808a9bc7300c2a0fac7fc56d0"
-                ) {
+                // Set Polymarket addresses to polygon chain by default
+                if (polymarketAddresses.includes(sample.address)) {
                   setSelectedChain("polygon");
                 }
               }}

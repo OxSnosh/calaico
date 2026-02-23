@@ -34,13 +34,22 @@ A unified REST API and React widget for querying 18 blockchains: 16 EVM chains (
 
 View 57+ BTC and thousands of transactions!
 
+**Solana (Ecosystem Wallet):**
+
+```
+9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM
+```
+
+Explore SOL balance and popular SPL tokens from the Solana ecosystem!
+
 **Polymarket (Prediction Markets):**
 
 ```
 0x259689a1594081a808a9bc7300c2a0fac7fc56d0
+0x45e842555d3a1d418bb7b7f8a0c1caf9ee297e8d
 ```
 
-View active betting positions and trading history on the world's largest prediction market platform!
+View active betting positions and trading history on the world's largest prediction market platform! These dedicated addresses show Polymarket-only data.
 
 ## 🌐 Supported Chains
 
@@ -66,7 +75,7 @@ View active betting positions and trading history on the world's largest predict
 ### Non-EVM Chains (2)
 
 - **Bitcoin** - UTXO-based with Ordinals, Runes, BRC-20 support
-- **Solana** - High-performance L1 with program-based architecture
+- **Solana** - High-performance L1 with program-based architecture and popular SPL token support
 
 ### Prediction Markets (1)
 
@@ -78,9 +87,11 @@ View active betting positions and trading history on the world's largest predict
 
 ### Polymarket Integration
 
-The API automatically detects Polymarket activity on **any address** and switches to prediction market mode when activity is found:
+The API includes specialized support for Polymarket prediction market data with smart detection:
 
-- **Universal Detection**: Checks any address for Polymarket positions and trading activity first
+- **Dedicated Addresses**: Specific addresses (like the sample ones above) use **Polymarket-only mode** showing prediction market positions and betting activity
+- **Regular Addresses**: All other addresses (including Vitalik's) show their **blockchain assets and transactions** as normal
+- **Smart Routing**: The system automatically detects whether to use Polymarket mode or blockchain mode based on the address
 - **Assets Endpoint**: Returns active prediction market positions with rich metadata (market titles, outcomes, PnL, redeemable status)
 - **Transactions Endpoint**: Shows betting history with complete trade details (BUY/SELL/REDEEM, prices, market info)
 - **Real-time Data**: Uses Polymarket Data API to fetch live positions and recent trading activity

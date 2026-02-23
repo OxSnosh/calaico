@@ -324,12 +324,13 @@ export default function DocsPage() {
                       <li>• Auto-detection of chain from address format</li>
                       <li>• Top 5 assets sorted by USD market value</li>
                       <li>• Real-time price data from CoinMarketCap</li>
+                      <li>• Enhanced Solana support with popular SPL tokens</li>
                       <li>
                         • Smart transaction categorization (15 categories)
                       </li>
                       <li>
-                        • Universal Polymarket detection for prediction market
-                        activity
+                        • Smart Polymarket integration with dedicated address
+                        support
                       </li>
                       <li>
                         • Only shows top 100 tokens by market cap (reduces spam)
@@ -857,37 +858,37 @@ return null; // → 422 UNRECOGNIZED_ADDRESS`}</pre>
 
                 <div className="prose max-w-none">
                   <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                    Calico includes comprehensive support for Polymarket, the
-                    world's largest prediction market platform. The API
-                    automatically detects Polymarket activity on any address and
-                    provides rich prediction market data.
+                    Calico includes specialized support for Polymarket, the
+                    world's largest prediction market platform. The API uses
+                    smart detection to provide appropriate data based on the
+                    address type.
                   </p>
 
                   <h2 className="text-2xl font-semibold mb-4">
-                    Universal Detection
+                    Smart Detection
                   </h2>
 
                   <p className="mb-4">
-                    Unlike traditional blockchain APIs that require you to
-                    specify which chain to query, Calico's Polymarket
-                    integration uses universal detection:
+                    Calico's Polymarket integration uses intelligent routing to
+                    provide the best user experience:
                   </p>
 
                   <ul className="list-disc pl-6 mb-6">
                     <li>
-                      • Automatically checks any address for Polymarket activity
-                      first
+                      • Dedicated Polymarket Addresses: Show prediction market
+                      data exclusively
                     </li>
                     <li>
-                      • No need to specify "Polymarket" as a chain parameter
+                      • Regular Addresses: Display blockchain assets and
+                      transactions as normal
                     </li>
                     <li>
-                      • Falls back to blockchain detection if no Polymarket
-                      activity found
+                      • Automatic Detection: System determines the appropriate
+                      mode based on the address
                     </li>
                     <li>
-                      • Works with any address that has prediction market
-                      positions or trading history
+                      • No Configuration: Users don't need to specify which mode
+                      to use
                     </li>
                   </ul>
 
@@ -927,12 +928,23 @@ return null; // → 422 UNRECOGNIZED_ADDRESS`}</pre>
 
                   <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg mb-6">
                     <p className="mb-2 font-medium">
-                      Try these addresses with known Polymarket activity:
+                      Dedicated Polymarket Addresses (show prediction market
+                      data only):
                     </p>
                     <div className="font-mono text-sm space-y-2">
-                      <div>0x259689a1594081a808a9bc7300c2a0fac7fc56d0</div>
-                      <div>0x45e842555d3a1d418bb7b7f8a0c1caf9ee297e8d</div>
+                      <div>
+                        0x259689a1594081a808a9bc7300c2a0fac7fc56d0 - Primary
+                        demo address
+                      </div>
+                      <div>
+                        0x45e842555d3a1d418bb7b7f8a0c1caf9ee297e8d - Secondary
+                        demo address
+                      </div>
                     </div>
+                    <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                      Regular addresses (like Vitalik's 0xd8dA6...96045) will
+                      show their blockchain assets and transactions normally.
+                    </p>
                   </div>
 
                   <h2 className="text-2xl font-semibold mb-4">
@@ -1626,6 +1638,21 @@ return null; // → 422 UNRECOGNIZED_ADDRESS`}</pre>
                       </div>
                       <div className="text-gray-500 font-mono truncate">
                         1A1zP1eP...
+                      </div>
+                    </button>
+                    <button
+                      onClick={() =>
+                        setAddress(
+                          "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+                        )
+                      }
+                      className="w-full text-left text-xs bg-[#0a0a0a] hover:bg-[#1a1a1a] border border-gray-800 rounded px-2 py-2 transition-colors"
+                    >
+                      <div className="font-medium text-white mb-0.5">
+                        Ecosystem (SOL)
+                      </div>
+                      <div className="text-gray-500 font-mono truncate">
+                        9WzDXwBbm...
                       </div>
                     </button>
                   </div>

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Polymarket Default Address
-const POLYMARKET_DEFAULT_ADDRESS = '0x259689a1594081a808a9bc7300c2a0fac7fc56d0';
+// Polymarket dedicated addresses that should use Polymarket-only mode
+const POLYMARKET_DEDICATED_ADDRESSES = [
+  '0x259689a1594081a808a9bc7300c2a0fac7fc56d0', // Primary Polymarket demo address
+  '0x45e842555d3a1d418bb7b7f8a0c1caf9ee297e8d', // Secondary Polymarket address
+];
 
 // Cache for 5 minutes
 const CACHE_DURATION = 5 * 60 * 1000;
@@ -540,6 +543,24 @@ async function fetchEthereumAssets(address: string, chainId: string = 'ethereum'
   };
 }
 
+// Popular Solana tokens with metadata (top market cap tokens)
+const POPULAR_SOLANA_TOKENS: Record<string, { symbol: string; name: string; decimals: number }> = {
+  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': { symbol: 'USDC', name: 'USD Coin', decimals: 6 },
+  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': { symbol: 'USDT', name: 'Tether USD', decimals: 6 },
+  'So11111111111111111111111111111111111111112': { symbol: 'SOL', name: 'Wrapped SOL', decimals: 9 },
+  '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R': { symbol: 'RAY', name: 'Raydium', decimals: 6 },
+  'SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt': { symbol: 'SRM', name: 'Serum', decimals: 6 },
+  'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So': { symbol: 'mSOL', name: 'Marinade staked SOL', decimals: 9 },
+  '7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj': { symbol: 'stSOL', name: 'Lido Staked SOL', decimals: 9 },
+  'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN': { symbol: 'JUP', name: 'Jupiter', decimals: 6 },
+  '85VBFQZC9TZkfaptBWjvUw7YbZjy52A6mjtPGjstQAmQ': { symbol: 'WEN', name: 'Wen', decimals: 5 },
+  'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263': { symbol: 'BONK', name: 'Bonk', decimals: 5 },
+  '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr': { symbol: 'POPCAT', name: 'Popcat', decimals: 9 },
+  '27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4': { symbol: 'JTO', name: 'Jito', decimals: 9 },
+  'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof': { symbol: 'RENDER', name: 'Render Token', decimals: 8 },
+  'HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3': { symbol: 'PYTH', name: 'Pyth Network', decimals: 6 },
+};
+
 async function fetchSolanaAssets(address: string) {
   // Using public Solana RPC endpoints
   const RPC_ENDPOINTS = [
@@ -581,11 +602,16 @@ async function fetchSolanaAssets(address: string) {
     const tokenData = await tokenResponse.json();
     const tokens = tokenData.result?.value?.map((account: any) => {
       const info = account.account.data.parsed.info;
+      const mint = info.mint;
+      const tokenInfo = POPULAR_SOLANA_TOKENS[mint];
+      
       return {
-        mint: info.mint,
+        mint,
         balance: info.tokenAmount.amount,
         decimals: info.tokenAmount.decimals,
-        symbol: 'SPL Token',
+        symbol: tokenInfo?.symbol || 'Unknown',
+        name: tokenInfo?.name || 'Unknown Token',
+        contractAddress: mint,
       };
     }) || [];
     
@@ -595,13 +621,31 @@ async function fetchSolanaAssets(address: string) {
     const nativeBalanceNum = Number(solBalance) / Math.pow(10, 9);
     const nativeMarketValue = nativeBalanceNum * solPrice;
 
-    // For SPL tokens, we'll estimate market value as 0 since we don't have token metadata
-    // In a production app, you'd fetch token metadata and prices
-    const tokensWithValue = tokens.map((token: any) => ({
-      ...token,
-      price: 0,
-      marketValue: 0,
-    }));
+    // Fetch prices for popular tokens and calculate market values
+    const tokensWithValue = await Promise.all(
+      tokens.map(async (token: any) => {
+        let price = 0;
+        let marketValue = 0;
+        
+        // Try to fetch price for known tokens
+        if (token.symbol && token.symbol !== 'Unknown') {
+          try {
+            price = await fetchTokenPrice(token.symbol);
+            const balanceNum = Number(token.balance) / Math.pow(10, token.decimals);
+            marketValue = balanceNum * price;
+          } catch (error) {
+            // If price fetch fails, keep as 0
+          }
+        }
+        
+        return {
+          ...token,
+          price,
+          marketValue,
+          isNative: false,
+        };
+      })
+    );
 
     // Combine native balance with tokens
     const allAssets = [
@@ -616,8 +660,11 @@ async function fetchSolanaAssets(address: string) {
       ...tokensWithValue.map((t: any) => ({ ...t, isNative: false })),
     ];
 
-    // Filter to only assets with price data from CoinMarketCap
-    const assetsWithPrice = allAssets.filter(asset => asset.price > 0 && asset.marketValue > 0);
+    // Filter to assets with value > 0 or major tokens even with 0 balance for display
+    const assetsWithPrice = allAssets.filter(asset => 
+      asset.marketValue > 0 || 
+      (asset.symbol && ['SOL', 'USDC', 'USDT', 'RAY', 'JUP', 'mSOL'].includes(asset.symbol))
+    );
 
     // Sort by market value and take top 5
     const topAssets = assetsWithPrice
@@ -630,10 +677,25 @@ async function fetchSolanaAssets(address: string) {
     return {
       address,
       chain: 'SOL',
-      nativeBalance: nativeAsset || null,
+      nativeBalance: nativeAsset || {
+        symbol: 'SOL',
+        balance: solBalance.toString(),
+        decimals: 9,
+        price: solPrice,
+        marketValue: nativeMarketValue,
+        isNative: true,
+      },
       tokens: topTokens,
-      topAssets: topAssets,
-      totalAssets: assetsWithPrice.length,
+      topAssets: topAssets.length > 0 ? topAssets : [{
+        symbol: 'SOL',
+        balance: solBalance.toString(),
+        decimals: 9,
+        price: solPrice,
+        marketValue: nativeMarketValue,
+        isNative: true,
+      }],
+      totalAssets: allAssets.length,
+      note: `Showing tokens from popular Solana ecosystem. ${tokens.length} SPL token accounts found.`,
     };
   } catch (error) {
     console.error('Error fetching Solana assets:', error);
@@ -817,29 +879,35 @@ export async function GET(request: NextRequest) {
     );
   }
   
-  // Try Polymarket first for any address
-  console.log(`Checking for Polymarket activity for address: ${address}`);
+  // Check if this is a dedicated Polymarket address (only use Polymarket mode for these)
+  const isDedicatedPolymarketAddress = POLYMARKET_DEDICATED_ADDRESSES.some(
+    addr => addr.toLowerCase() === address.toLowerCase()
+  );
   
-  // Check cache for Polymarket data
-  const polymarketCacheKey = `polymarket_${address}`;
-  const polymarketCached = cache.get(polymarketCacheKey);
-  if (polymarketCached && Date.now() - polymarketCached.timestamp < CACHE_DURATION) {
-    return NextResponse.json(polymarketCached.data);
-  }
-  
-  // Try fetching Polymarket data - if it has positions, use Polymarket mode
-  try {
-    const polymarketResult = await fetchPolymarketAssets(address);
-    if (polymarketResult.totalAssets > 0) {
-      console.log(`Found ${polymarketResult.totalAssets} Polymarket positions for ${address}`);
-      
-      // Cache the result
-      cache.set(polymarketCacheKey, { data: polymarketResult, timestamp: Date.now() });
-      
-      return NextResponse.json(polymarketResult);
+  if (isDedicatedPolymarketAddress) {
+    console.log(`Using Polymarket mode for dedicated address: ${address}`);
+    
+    // Check cache for Polymarket data
+    const polymarketCacheKey = `polymarket_${address}`;
+    const polymarketCached = cache.get(polymarketCacheKey);
+    if (polymarketCached && Date.now() - polymarketCached.timestamp < CACHE_DURATION) {
+      return NextResponse.json(polymarketCached.data);
     }
-  } catch (error) {
-    console.log(`No Polymarket activity found for ${address}, trying blockchain detection`);
+    
+    // Try fetching Polymarket data - if it has positions, use Polymarket mode
+    try {
+      const polymarketResult = await fetchPolymarketAssets(address);
+      if (polymarketResult.totalAssets > 0) {
+        console.log(`Found ${polymarketResult.totalAssets} Polymarket positions for ${address}`);
+        
+        // Cache the result
+        cache.set(polymarketCacheKey, { data: polymarketResult, timestamp: Date.now() });
+        
+        return NextResponse.json(polymarketResult);
+      }
+    } catch (error) {
+      console.log(`No Polymarket activity found for ${address}, trying blockchain detection`);
+    }
   }
   
   // Check cache (include chain in cache key for EVM addresses)
